@@ -287,8 +287,8 @@ Fields:
 
 ### Behavior
 
-- selects one majority ayah from the recitation
-- if user mixes ayahs, non-majority words are treated as `extra`
+- detects the best contiguous ayah range from the recitation (for example `2:6` to `2:8`)
+- if user mixes words outside the selected range, those words are treated as `extra`
 - returns only simplified fields:
   - user-read (split by ayah classification)
   - correct ayah text
@@ -300,48 +300,41 @@ Fields:
 {
   "success": true,
   "transcript": {
-    "raw": "اياك نكا بو واياك نستعين",
-    "normalized": "اياك نكا بو واياك نستعين"
+    "raw": "الذين كفروا سواء عليهم أأنذرتهم أم لم تنذرهم لا يؤمنون ختم الله على قلوبهم وعلى سمعهم وعلى أبصارهم غشاوة ولهم عذاب عظيم ومن الناس من يقول آمنا بالله وباليوم الآخر وما هم مؤمنون",
+    "normalized": "الذين كفروا سواء عليهم اانذرتهم ام لم تنذرهم لا يومنون ختم الله علي قلوبهم وعلي سمعهم وعلي ابصارهم غشاوة ولهم عذاب عظيم ومن الناس من يقول امنا بالله وباليوم الاخر وما هم مومنون"
   },
-  "selected_ayah": {
-    "surah_id": 1,
-    "ayat_id": 5,
-    "id": 5,
-    "majority_score": 0.5
+  "selected_ayah_range": {
+    "start": { "surah_id": 2, "ayat_id": 6, "id": 6 },
+    "end": { "surah_id": 2, "ayat_id": 8, "id": 8 },
+    "total_ayahs": 3,
+    "coverage_score": 61.9622
   },
   "user_read": {
     "by_ayah": [
       {
-        "surah_id": 1,
-        "ayat_id": 5,
-        "classification": "majority",
-        "words": ["اياك", "واياك", "نستعين"],
-        "text": "اياك واياك نستعين"
-      },
-      {
-        "surah_id": null,
-        "ayat_id": null,
-        "classification": "extra",
-        "words": ["نكا", "بو"],
-        "text": "نكا بو"
+        "surah_id": 2,
+        "ayat_id": 6,
+        "classification": "detected",
+        "words": ["الذين", "كفروا", "سواء", "عليهم", "اانذرتهم", "ام", "لم", "تنذرهم", "لا", "يومنون"],
+        "text": "الذين كفروا سواء عليهم اانذرتهم ام لم تنذرهم لا يومنون"
       }
     ]
   },
   "correct_text": {
     "by_ayah": [
       {
-        "surah_id": 1,
-        "ayat_id": 5,
-        "clean_text": "اياك نعبد واياك نستعين",
-        "display_text": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
-        "words": ["اياك", "نعبد", "واياك", "نستعين"]
+        "surah_id": 2,
+        "ayat_id": 6,
+        "clean_text": "ان الذين كفروا سواء عليهم اانذرتهم ام لم تنذرهم لا يؤمنون",
+        "display_text": "إِنَّ ٱلَّذِينَ كَفَرُوا۟ سَوَآءٌ عَلَيْهِمْ ءَأَنذَرْتَهُمْ أَمْ لَمْ تُنذِرْهُمْ لَا يُؤْمِنُونَ",
+        "words": ["ان", "الذين", "كفروا", "سواء", "عليهم", "اانذرتهم", "ام", "لم", "تنذرهم", "لا", "يؤمنون"]
       }
     ]
   },
   "error": {
-    "missing": ["نعبد"],
-    "extra": ["نكا", "بو"],
-    "incorrect": []
+    "missing": ["ان"],
+    "extra": [],
+    "incorrect": [{ "expected": "بمومنين", "actual": "مومنون" }]
   }
 }
 ```

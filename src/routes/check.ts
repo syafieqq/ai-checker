@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import type { CheckResponse } from '../types.js';
 import { transcribeAudioFile } from '../services/openaiTranscription.js';
 import { quranMatcher } from '../services/quranMatcher.js';
-import { detectMajorityAyah } from '../services/simpleCheck.js';
+import { detectBestAyahWindow } from '../services/simpleCheck.js';
 import { analyzeTajwidForAyah } from '../services/tajwidOrchestrator.js';
 import { normalizeArabic, splitWords } from '../utils/arabic.js';
 import { AppError } from '../utils/errors.js';
@@ -52,31 +52,37 @@ check.post('/check/simple', async (c) => {
         }
       : undefined;
 
-  const majority = detectMajorityAyah(transcriptWords, matchOptions);
-  const alignedIndexes = new Set<number>();
-
-  for (const item of majority.comparison.matched_words) {
-    alignedIndexes.add(item.user_index);
-  }
-
-  for (const item of majority.comparison.incorrect_words) {
-    alignedIndexes.add(item.user_index);
-  }
-
-  const userMajorityWords = [...alignedIndexes]
-    .sort((left, right) => left - right)
-    .map((index) => transcriptWords[index]!)
-    .filter(Boolean);
-
-  const extraWords = [...majority.comparison.extra_words]
+  const window = detectBestAyahWindow(transcriptWords, matchOptions);
+  const extraWords = [...window.comparison.extra_words]
     .sort((left, right) => left.user_index - right.user_index)
     .map((item) => item.word);
+
+  const userIndexesByAyah = window.boundaries.map(() => new Set<number>());
+
+  const bindUserIndexToAyah = (targetIndex: number, userIndex: number): void => {
+    const boundaryIndex = window.boundaries.findIndex(
+      (boundary) => targetIndex >= boundary.start && targetIndex < boundary.end,
+    );
+
+    if (boundaryIndex >= 0) {
+      userIndexesByAyah[boundaryIndex]!.add(userIndex);
+    }
+  };
+
+  for (const item of window.comparison.matched_words) {
+    bindUserIndexToAyah(item.target_index, item.user_index);
+  }
+
+  for (const item of window.comparison.incorrect_words) {
+    bindUserIndexToAyah(item.target_index, item.user_index);
+  }
 
   let extraAyah: { surah_id: number; ayat_id: number; id: number; confidence: number } | null = null;
   if (extraWords.length > 0) {
     try {
       const extraMatch = quranMatcher.findBestMatch(extraWords.join(' '));
-      if (extraMatch.ayah.id !== majority.ayah.id) {
+      const inWindow = window.ayahs.some((ayah) => ayah.id === extraMatch.ayah.id);
+      if (!inWindow) {
         extraAyah = {
           surah_id: extraMatch.ayah.surah_id,
           ayat_id: extraMatch.ayah.ayat_id,
@@ -95,21 +101,36 @@ check.post('/check/simple', async (c) => {
       raw: rawTranscript,
       normalized: normalizedTranscript,
     },
-    selected_ayah: {
-      surah_id: majority.ayah.surah_id,
-      ayat_id: majority.ayah.ayat_id,
-      id: majority.ayah.id,
-      majority_score: majority.majority_score,
+    selected_ayah_range: {
+      start: {
+        surah_id: window.ayahs[0]!.surah_id,
+        ayat_id: window.ayahs[0]!.ayat_id,
+        id: window.ayahs[0]!.id,
+      },
+      end: {
+        surah_id: window.ayahs[window.ayahs.length - 1]!.surah_id,
+        ayat_id: window.ayahs[window.ayahs.length - 1]!.ayat_id,
+        id: window.ayahs[window.ayahs.length - 1]!.id,
+      },
+      total_ayahs: window.ayahs.length,
+      coverage_score: window.coverage_score,
     },
     user_read: {
       by_ayah: [
-        {
-          surah_id: majority.ayah.surah_id,
-          ayat_id: majority.ayah.ayat_id,
-          classification: 'majority',
-          words: userMajorityWords,
-          text: userMajorityWords.join(' '),
-        },
+        ...window.boundaries.map((boundary, index) => {
+          const words = [...userIndexesByAyah[index]!]
+            .sort((left, right) => left - right)
+            .map((userIndex) => transcriptWords[userIndex]!)
+            .filter(Boolean);
+
+          return {
+            surah_id: boundary.ayah.surah_id,
+            ayat_id: boundary.ayah.ayat_id,
+            classification: 'detected',
+            words,
+            text: words.join(' '),
+          };
+        }),
         ...(extraWords.length > 0
           ? [
               {
@@ -124,20 +145,18 @@ check.post('/check/simple', async (c) => {
       ],
     },
     correct_text: {
-      by_ayah: [
-        {
-          surah_id: majority.ayah.surah_id,
-          ayat_id: majority.ayah.ayat_id,
-          clean_text: majority.ayah.clean_text,
-          display_text: majority.ayah.display_text,
-          words: majority.ayah.words,
-        },
-      ],
+      by_ayah: window.ayahs.map((ayah) => ({
+        surah_id: ayah.surah_id,
+        ayat_id: ayah.ayat_id,
+        clean_text: ayah.clean_text,
+        display_text: ayah.display_text,
+        words: ayah.words,
+      })),
     },
     error: {
-      missing: majority.comparison.missing_words.map((item) => item.word),
+      missing: window.comparison.missing_words.map((item) => item.word),
       extra: extraWords,
-      incorrect: majority.comparison.incorrect_words.map((item) => ({
+      incorrect: window.comparison.incorrect_words.map((item) => ({
         expected: item.expected,
         actual: item.actual,
       })),
