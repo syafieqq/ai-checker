@@ -1,0 +1,45 @@
+{
+  "name": "quran-smart-checker-api",
+  "version": "1.0.0",
+  "description": "API-only Hono backend for Quran recitation transcription and deterministic word-level checking.",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "worker:dev": "tsx watch worker/mock-server.ts",
+    "generate:tajwid-rules": "tsx scripts/generate-tajwid-rules.ts",
+    "build": "tsc --project tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "keywords": [
+    "quran",
+    "hono",
+    "vercel",
+    "openai",
+    "typescript",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.1",
+    "hono": "^4.12.16",
+    "openai": "^6.35.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1",
+    "vitest": "^4.1.5"
+  }
+}
