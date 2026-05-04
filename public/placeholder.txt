@@ -1,0 +1,2 @@
+This project is API-only.
+The public directory exists so Vercel's static build step has a valid output directory.

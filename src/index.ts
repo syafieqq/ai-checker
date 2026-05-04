@@ -6,7 +6,10 @@ import healthRoute from './routes/health.js';
 import surahsRoute from './routes/surahs.js';
 import tajwidRoute from './routes/tajwid.js';
 import transcribeRoute from './routes/transcribe.js';
+import { loadLocalEnv } from './utils/loadEnv.js';
 import { handleAppError } from './utils/errors.js';
+
+loadLocalEnv();
 
 const app = new Hono();
 

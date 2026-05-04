@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch src/dev-server.ts",
     "worker:dev": "tsx watch worker/mock-server.ts",
     "generate:tajwid-rules": "tsx scripts/generate-tajwid-rules.ts",
     "build": "tsc --project tsconfig.json",

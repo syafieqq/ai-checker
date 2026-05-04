@@ -267,8 +267,91 @@ curl -X POST "http://localhost:3000/api/check" \
 - `confidence` is a backend match score from `0` to `1`
 - `accuracy` is a percentage from `0` to `100`
 - comparison is deterministic and does not ask OpenAI to judge correctness
+- for precise "missing word" detection, pass `surah_id` and `ayat_id` so matching is scoped to the expected ayah
 - `tajwid.annotations` lists the rule spans currently known for the target ayah
 - `tajwid.supported` remains `false` until a real audio-analysis worker returns an analyzed response
+
+## `POST /api/check/simple`
+
+Lightweight checker response focused on ayah split and error buckets.
+
+### Request
+
+`multipart/form-data`
+
+Fields:
+
+- `file` required
+- `surah_id` optional
+- `ayat_id` optional (requires `surah_id`)
+
+### Behavior
+
+- selects one majority ayah from the recitation
+- if user mixes ayahs, non-majority words are treated as `extra`
+- returns only simplified fields:
+  - user-read (split by ayah classification)
+  - correct ayah text
+  - errors (`missing`, `extra`, `incorrect`)
+
+### Example response
+
+```json
+{
+  "success": true,
+  "transcript": {
+    "raw": "اياك نكا بو واياك نستعين",
+    "normalized": "اياك نكا بو واياك نستعين"
+  },
+  "selected_ayah": {
+    "surah_id": 1,
+    "ayat_id": 5,
+    "id": 5,
+    "majority_score": 0.5
+  },
+  "user_read": {
+    "by_ayah": [
+      {
+        "surah_id": 1,
+        "ayat_id": 5,
+        "classification": "majority",
+        "words": ["اياك", "واياك", "نستعين"],
+        "text": "اياك واياك نستعين"
+      },
+      {
+        "surah_id": null,
+        "ayat_id": null,
+        "classification": "extra",
+        "words": ["نكا", "بو"],
+        "text": "نكا بو"
+      }
+    ]
+  },
+  "correct_text": {
+    "by_ayah": [
+      {
+        "surah_id": 1,
+        "ayat_id": 5,
+        "clean_text": "اياك نعبد واياك نستعين",
+        "display_text": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+        "words": ["اياك", "نعبد", "واياك", "نستعين"]
+      }
+    ]
+  },
+  "error": {
+    "missing": ["نعبد"],
+    "extra": ["نكا", "بو"],
+    "incorrect": []
+  }
+}
+```
+
+### Curl
+
+```bash
+curl -X POST "http://localhost:3000/api/check/simple" \
+  -F "file=@sample.m4a"
+```
 
 ## `GET /api/tajwid/capabilities`
 

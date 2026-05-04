@@ -32,7 +32,7 @@ API-only backend for uploading Quran recitation audio, transcribing it with Open
 ```text
 src/
   index.ts
-  server.ts
+  dev-server.ts
   routes/
     health.ts
     transcribe.ts
@@ -101,7 +101,7 @@ TAJWID_WORKER_TIMEOUT_MS=15000
 npm run dev
 ```
 
-Local development runs the Node server from [src/server.ts](/Users/admin/Desktop/Ai-Checker/src/server.ts:1) on `http://localhost:3000`.
+Local development runs the Node server from [src/dev-server.ts](/Users/admin/Desktop/Ai-Checker/src/dev-server.ts:1) on `http://localhost:3000`.
 
 ## Scripts
 

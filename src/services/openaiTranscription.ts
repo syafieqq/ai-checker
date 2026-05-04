@@ -1,8 +1,11 @@
-import OpenAI, { toFile } from 'openai';
+import { OpenAI, toFile } from 'openai';
 
 import { AppError } from '../utils/errors.js';
 
 const DEFAULT_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
+const DEFAULT_TRANSCRIPTION_LANGUAGE = 'ar';
+const DEFAULT_TRANSCRIPTION_PROMPT =
+  'Transcribe Quran recitation in Arabic script only. Do not transliterate to Latin letters.';
 
 let client: OpenAI | undefined;
 
@@ -25,6 +28,14 @@ export const getTranscriptionModel = (): string => {
   return process.env.OPENAI_TRANSCRIPTION_MODEL?.trim() || DEFAULT_TRANSCRIPTION_MODEL;
 };
 
+export const getTranscriptionLanguage = (): string => {
+  return process.env.OPENAI_TRANSCRIPTION_LANGUAGE?.trim() || DEFAULT_TRANSCRIPTION_LANGUAGE;
+};
+
+export const getTranscriptionPrompt = (): string => {
+  return process.env.OPENAI_TRANSCRIPTION_PROMPT?.trim() || DEFAULT_TRANSCRIPTION_PROMPT;
+};
+
 export const transcribeAudioFile = async (file: File): Promise<string> => {
   try {
     const upload = await toFile(
@@ -36,6 +47,8 @@ export const transcribeAudioFile = async (file: File): Promise<string> => {
     const transcription = await getClient().audio.transcriptions.create({
       file: upload,
       model: getTranscriptionModel(),
+      language: getTranscriptionLanguage(),
+      prompt: getTranscriptionPrompt(),
     });
 
     return transcription.text.trim();
